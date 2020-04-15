@@ -6,7 +6,9 @@ using System.Text.RegularExpressions;
 
 public class Enemy : MonoBehaviour
 {
+    int Level_count;
     public GameObject Player;
+    public GameObject Camera;
     public RuntimeAnimatorController Stand;
     public RuntimeAnimatorController StandStairs;
     public RuntimeAnimatorController StandCrossBar;
@@ -35,7 +37,7 @@ public class Enemy : MonoBehaviour
     int[,] Level1;
 
     int[,] ReadLevel(string NameLevel) {
-        string text = System.IO.File.ReadAllText("Assets/Resources/Text/"+NameLevel);
+        string text = System.IO.File.ReadAllText(Application.dataPath + "/Resources/Text/"+NameLevel);
         string[] lines = Regex.Split(text, "\r\n");
         int[,] Level = new int[lines[0].Split(' ').Length, lines.Length];
         for (int i = 0; i < lines.Length; i++) {
@@ -60,7 +62,8 @@ public class Enemy : MonoBehaviour
     void Start() {
         EnemyRigidbody = GetComponent<Rigidbody>();
         EnemyTransform = GetComponent<Transform>();
-        Level1 = ReadLevel("Level 1.txt");
+        Level_count = Camera.GetComponent<inital>().level_count;
+        Level1 = ReadLevel("Level "+Level_count+".txt");
         EnemyAnimator = GetComponent<Animator>();
         StartCoroutine(MyUpdate());
         EnemyDirectionTo = 1;
@@ -69,6 +72,7 @@ public class Enemy : MonoBehaviour
     void Update() {
         RotateEnemy(EnemyDirectionTo);
         EnemyAnimator.runtimeAnimatorController = AnimatorNow; 
+
     }
     IEnumerator MyUpdate (){
         while(true) {
@@ -78,6 +82,15 @@ public class Enemy : MonoBehaviour
             int my_x = (int)Math.Round(EnemyTransform.position.x);
             int my_y = (int)EnemyTransform.position.y+1;
             
+            if(//(Level1[my_x, my_y+1] == 3 || Level1[my_x, my_y] == 3) &&
+                    EnemyTransform.position.y < Player.transform.position.y) {
+                input_y = 1;
+            }
+            else if(//(Level1[my_x, my_y-1] == 3 || Level1[my_x, my_y] == 4) &&
+                    EnemyTransform.position.y > Player.transform.position.y) {
+                input_y = -1;
+            }
+
             if(EnemyTransform.position.x < Player.transform.position.x && 
                 Level1[my_x+1, my_y] != 1 && Level1[my_x+1, my_y] != 2 && 
                 (int)EnemyTransform.position.y == (int)Player.transform.position.y) {
@@ -88,14 +101,7 @@ public class Enemy : MonoBehaviour
                     (int)EnemyTransform.position.y == (int)Player.transform.position.y) {
                 input_x = -1;
             }
-            else if((Level1[my_x, my_y+1] == 3 || Level1[my_x, my_y] == 3) &&
-                    (int)EnemyTransform.position.y < (int)Player.transform.position.y) {
-                input_y = 1;
-            }
-            else if((Level1[my_x, my_y-1] == 3 || Level1[my_x, my_y] == 4) &&
-                    (int)EnemyTransform.position.y > (int)Player.transform.position.y) {
-                input_y = -1;
-            }
+            
             else if(Level1[my_x+1, my_y] != 1 || Level1[my_x+1, my_y] != 2 ||
                     Level1[my_x-1, my_y] != 1 || Level1[my_x-1, my_y] != 2) {
                 int y = (int)EnemyTransform.position.y+1;
@@ -103,7 +109,7 @@ public class Enemy : MonoBehaviour
                 int small_way = 100;
                 for (int i = 0; i < Level1.GetLength(0); i++) {
                     if(Level1[i, y] == 3 ||
-                        Level1[i, y] == 4) {
+                        Level1[i, y] == 4 || Level1[i, y+1] == 4) {
                         if(Mathf.Abs(i - my_x) <= small_way) {
                             small_way = Mathf.Abs(i - my_x);
                             if(i < my_x) { input_x = -1; }
@@ -126,13 +132,6 @@ public class Enemy : MonoBehaviour
                 EnemyTransform.position += new Vector3(Speed/1000f*input_x, 0, 0);
             }
 
-            if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3 &&
-                Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] != 3) {
-                if(input_x!=0) {
-                    EnemyTransform.position = new Vector3(EnemyTransform.position.x, (int)EnemyTransform.position.y+0.5f, 0);
-                }
-            }
-
             if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] == 3 ||
                Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3) {
                 EnemyRigidbody.useGravity = false; EnemyDirectionTo = 2;
@@ -146,10 +145,12 @@ public class Enemy : MonoBehaviour
                 if(input_x == 0) { EnemyDirectionTo = 1; AnimatorNow = StandCrossBar; }
                 if(input_x > 0) {  EnemyDirectionTo = 1; AnimatorNow = RunCrossbar;  }
                 if(input_x < 0) {  EnemyDirectionTo = -1; AnimatorNow= RunCrossbar; }
-                if(input_y >= 0)
-                    EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y+0.5f, 0);
-                else 
-                    EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y, 0);
+                EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y+0.5f, 0);
+                if(input_y < 0) {
+                    if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 0)
+                        EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y, 0);
+                }
+                    
             } else { EnemyRigidbody.useGravity = true; }
 
             
