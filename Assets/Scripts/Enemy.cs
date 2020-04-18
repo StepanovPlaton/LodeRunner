@@ -18,6 +18,7 @@ public class Enemy : MonoBehaviour
     public RuntimeAnimatorController Up;
 
     public float Speed = 100f;
+    public float Speed_start = 100f;
 
     float input_x = 0;
     float input_y = 0;
@@ -72,87 +73,109 @@ public class Enemy : MonoBehaviour
     void Update() {
         RotateEnemy(EnemyDirectionTo);
         EnemyAnimator.runtimeAnimatorController = AnimatorNow; 
-
+        Speed = Speed_start*Time.deltaTime*30;
     }
     IEnumerator MyUpdate (){
         while(true) {
-            input_x = 0;
-            input_y = 0;
-            
-            int my_x = (int)Math.Round(EnemyTransform.position.x);
-            int my_y = (int)EnemyTransform.position.y+1;
-            
-            if(//(Level1[my_x, my_y+1] == 3 || Level1[my_x, my_y] == 3) &&
-                    EnemyTransform.position.y < Player.transform.position.y) {
-                input_y = 1;
-            }
-            else if(//(Level1[my_x, my_y-1] == 3 || Level1[my_x, my_y] == 4) &&
-                    EnemyTransform.position.y > Player.transform.position.y) {
-                input_y = -1;
-            }
-
-            if(EnemyTransform.position.x < Player.transform.position.x && 
-                Level1[my_x+1, my_y] != 1 && Level1[my_x+1, my_y] != 2 && 
-                (int)EnemyTransform.position.y == (int)Player.transform.position.y) {
-                input_x = 1;
-            }
-            else if(EnemyTransform.position.x > Player.transform.position.x && 
-                    Level1[my_x-1, my_y] != 1 && Level1[my_x-1, my_y] != 2 && 
-                    (int)EnemyTransform.position.y == (int)Player.transform.position.y) {
-                input_x = -1;
-            }
-            
-            else if(Level1[my_x+1, my_y] != 1 || Level1[my_x+1, my_y] != 2 ||
-                    Level1[my_x-1, my_y] != 1 || Level1[my_x-1, my_y] != 2) {
-                int y = (int)EnemyTransform.position.y+1;
-                if((int)EnemyTransform.position.y > (int)Player.transform.position.y) y--;
-                int small_way = 100;
-                for (int i = 0; i < Level1.GetLength(0); i++) {
-                    if(Level1[i, y] == 3 ||
-                        Level1[i, y] == 4 || Level1[i, y+1] == 4) {
-                        if(Mathf.Abs(i - my_x) <= small_way) {
-                            small_way = Mathf.Abs(i - my_x);
-                            if(i < my_x) { input_x = -1; }
-                            else { input_x = 1; break; }
-                        }
-                    }
-                }
-            } else {
+            if(Camera.GetComponent<inital>().ok) {
                 input_x = 0;
                 input_y = 0;
-            }
-            //input_x = 0;
-            //input_y = 0;
 
-            if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3 ||
-               Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] <= 2) {
-                if(input_x == 0) { EnemyDirectionTo = 0; AnimatorNow= Stand; }
-                if(input_x > 0) { EnemyDirectionTo = 1; AnimatorNow = Run; }
-                if(input_x < 0) { EnemyDirectionTo = -1; AnimatorNow= Run; }
-                EnemyTransform.position += new Vector3(Speed/1000f*input_x, 0, 0);
-            }
+                int my_x = (int)Math.Round(EnemyTransform.position.x);
+                int my_y = (int)EnemyTransform.position.y+1;
 
-            if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] == 3 ||
-               Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3) {
-                EnemyRigidbody.useGravity = false; EnemyDirectionTo = 2;
-                if(input_y == 0) { AnimatorNow= StandStairs; }
-                if(input_y > 0) { AnimatorNow = Up; }
-                if(input_y < 0) { AnimatorNow= Up; }
-                EnemyTransform.position += new Vector3(0, Speed/500f*input_y, 0);
-            }
-            else if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] == 4) {
-                EnemyRigidbody.useGravity = false;
-                if(input_x == 0) { EnemyDirectionTo = 1; AnimatorNow = StandCrossBar; }
-                if(input_x > 0) {  EnemyDirectionTo = 1; AnimatorNow = RunCrossbar;  }
-                if(input_x < 0) {  EnemyDirectionTo = -1; AnimatorNow= RunCrossbar; }
-                EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y+0.5f, 0);
-                if(input_y < 0) {
-                    if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 0)
-                        EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y, 0);
+                if((EnemyTransform.position.x < Player.transform.position.x && 
+                    Level1[my_x+1, my_y] != 1 && Level1[my_x+1, my_y] != 2 && 
+                    Mathf.Abs(EnemyTransform.position.y-Player.transform.position.y)<0.1f)) {
+                    input_x = 1;
                 }
-                    
-            } else { EnemyRigidbody.useGravity = true; }
+                else if((EnemyTransform.position.x > Player.transform.position.x && 
+                        Level1[my_x-1, my_y] != 1 && Level1[my_x-1, my_y] != 2 && 
+                        Mathf.Abs(EnemyTransform.position.y-Player.transform.position.y)<0.1f)) {
+                    input_x = -1;
+                }
+                else if((EnemyTransform.position.y > Player.transform.position.y &&
+                        Mathf.Abs(EnemyTransform.position.y - Player.transform.position.y)>0.1f &&
+                        (Level1[my_x, my_y] == 3 || Level1[my_x, my_y-1] == 3) &&
+                        ((Level1[my_x, my_y-1] != 1 && Level1[my_x, my_y-1] != 2) ||
+                        Mathf.Abs(EnemyTransform.position.y - (int)EnemyTransform.position.y)>0.5f)) ||
+                        (Level1[my_x, my_y] == 4 && EnemyTransform.position.y > Player.transform.position.y)) {
+                    input_y = -1;
+                }
+                else if(EnemyTransform.position.y < Player.transform.position.y &&
+                        Mathf.Abs(EnemyTransform.position.y - Player.transform.position.y)>0.1f &&
+                        (Level1[my_x, my_y] == 3 || 
+                        (Level1[my_x, my_y-1] == 3 && Mathf.Abs(EnemyTransform.position.y - (int)EnemyTransform.position.y)<0.5f))) {
+                    input_y = 1;
+                }
+                else if(Level1[my_x+1, my_y] != 1 || Level1[my_x+1, my_y] != 2 ||
+                        Level1[my_x-1, my_y] != 1 || Level1[my_x-1, my_y] != 2) {
+                    int y = (int)EnemyTransform.position.y+1;
+                    if((int)EnemyTransform.position.y > (int)Player.transform.position.y) y--;
+                    int small_way = 100;
+                    for (int i = 0; i < Level1.GetLength(0); i++) {
+                        if(Level1[i, y] == 3) {
+                            if(Mathf.Abs(i - my_x) <= small_way) {
+                                small_way = Mathf.Abs(i - my_x);
+                                if(i < my_x) { input_x = -1; }
+                                else if(i == my_x) { input_x = 0; }
+                                else { input_x = 1;  }
+                            }
+                        }
+                    }
+                } else {
+                    input_x = 0;
+                    input_y = 0;
+                }
 
+                if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3 ||
+                   Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] <= 2) {
+                    if(input_x == 0) { EnemyDirectionTo = 0; AnimatorNow= Stand; }
+                    if(input_x > 0) { EnemyDirectionTo = 1; AnimatorNow = Run; }
+                    if(input_x < 0) { EnemyDirectionTo = -1; AnimatorNow= Run; }
+                    EnemyTransform.position += new Vector3(Speed/1000f*input_x, 0, 0);
+                }
+
+                if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] == 3 ||
+                   Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y] == 3) {
+                    EnemyRigidbody.useGravity = false; EnemyDirectionTo = 2;
+                    if(input_y == 0) { AnimatorNow= StandStairs; }
+                    if(input_y > 0) { 
+                        AnimatorNow = Up; 
+                        if(input_y ==1)
+                            EnemyTransform.position = new Vector3((int)Math.Round(EnemyTransform.position.x), EnemyTransform.position.y, 0);
+                    }
+                    if(input_y < 0) { 
+                        AnimatorNow= Up; 
+                        if(input_y ==1)
+                            EnemyTransform.position = new Vector3((int)Math.Round(EnemyTransform.position.x), EnemyTransform.position.y, 0);
+                    }
+                    EnemyTransform.position += new Vector3(0, Speed/500f*input_y, 0);
+                }
+                else if(Level1[(int)Math.Round(EnemyTransform.position.x), (int)EnemyTransform.position.y+1] == 4) {
+                    EnemyRigidbody.useGravity = false;
+                    if(input_x == 0) { EnemyDirectionTo = 1; AnimatorNow = StandCrossBar; }
+                    if(input_x > 0) {  EnemyDirectionTo = 1; AnimatorNow = RunCrossbar;  }
+                    if(input_x < 0) {  EnemyDirectionTo = -1; AnimatorNow= RunCrossbar; }
+                    if(input_y < 0) {
+                        EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y, 0);
+                    }
+                    else 
+                        EnemyTransform.position = new Vector3(EnemyTransform.position.x+Speed/1000f*input_x, (int)EnemyTransform.position.y+0.5f, 0);
+
+
+                } else { 
+                    bool gravity = true;
+                    for(int enemy = 0; enemy < Camera.GetComponent<inital>().enemy_count; enemy++) {
+                        if((int)Math.Round(EnemyTransform.position.x) == Camera.GetComponent<inital>().Enemys_last_check_x[enemy] &&
+                            (int)EnemyTransform.position.y == Camera.GetComponent<inital>().Enemys_last_check_y[enemy]) {
+                            gravity = false;
+                            print("GOOD");
+                        }
+                    }
+                    EnemyRigidbody.useGravity = gravity; 
+                }
+            }
             
             yield return null;
         }

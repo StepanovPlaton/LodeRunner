@@ -17,6 +17,8 @@ public class inital : MonoBehaviour
     public GameObject Player;
     public GameObject Text_RED;
     public GameObject Text_GREEN;
+    public GameObject Text_BLUE;
+    public GameObject IMAGE;
     public GameObject EnemyPlayer;
     public Rigidbody PlayerRigidbody;
     public RuntimeAnimatorController Stand;
@@ -28,25 +30,39 @@ public class inital : MonoBehaviour
     public RuntimeAnimatorController Mining;
     public RuntimeAnimatorController Up;
 
+    public GameObject SoundTrack;
+    public GameObject Effects;
+
+    public AudioClip Soundtrack;
+    public AudioClip NewLevel;
+    public AudioClip EndLevel;
+    public AudioClip AllGold;
+    public AudioClip AllGold2;
+    public AudioClip LogoSound;
+    public AudioClip GameOver;
+
+    public float Speed_start = 100f;
     public float Speed = 100f;
 
     int MyGold = 0;
 
-    int enemy_count = 0;
+    public int enemy_count = 0;
 
     int Gold_count = 0;
 
-    bool ok = true;
+    public bool ok = true;
+    bool wait_space0 = true;
 
     string text_red = "";
     string text_green = "";
+    string text_blue = "";
 
     public int level_count = 1;
 
     GameObject[] Enemys = new GameObject[10]; 
     int[] Enemys_gold = new int[10]; 
-    int[] Enemys_last_check_x = new int[10]; 
-    int[] Enemys_last_check_y = new int[10]; 
+    public int[] Enemys_last_check_x = new int[10]; 
+    public int[] Enemys_last_check_y = new int[10]; 
     int[] Enemys_kill_time = new int[10]; 
 
     int PlayerDirectionTo = 0;
@@ -79,7 +95,15 @@ public class inital : MonoBehaviour
     }
 
     void RotatePlayer(int where_turn) {
-        Player.transform.rotation = Quaternion.AngleAxis(-1*where_turn*90+180, Player.transform.up);
+        if(where_turn == 0)
+            Player.transform.rotation = Quaternion.AngleAxis(180, Player.transform.up);
+        if(where_turn == 1)
+            Player.transform.rotation = Quaternion.AngleAxis(90, Player.transform.up);
+        if(where_turn == -1)
+            Player.transform.rotation = Quaternion.AngleAxis(-90, Player.transform.up);
+        if(where_turn == 2)
+            Player.transform.rotation = Quaternion.AngleAxis(0, Player.transform.up);
+    
     }
 
     void DESTROY_LEVEL() {
@@ -94,9 +118,7 @@ public class inital : MonoBehaviour
     }
 
     (GameObject[,] Cubes, GameObject[,] Gold, GameObject[,] Other, GameObject[] Enemy) DrawLevel(int[,] Level) {
-        for (int i = 0; i < 42; i++) {
-            for (int j = 0; j < 22; j++) { Instantiate(InitalBlackCube, new Vector3(i-5, j-2, 1), Quaternion.identity); }
-        } 
+        
 
         Camera.transform.position = new Vector3((float)Level.GetLength(0)/2, Level.GetLength(1)/2, -20f);
         Light.transform.position = new Vector3((float)Level.GetLength(0)/2, Level.GetLength(1)/2, -25f);
@@ -119,11 +141,12 @@ public class inital : MonoBehaviour
                     Gold_count++;
                 }
                 else if(Level[i,j] == 8) {
-                    Enemy[enemy_count] = Instantiate(EnemyPlayer, new Vector3(i, j, -0.3f), Quaternion.AngleAxis(180, Vector3.up));
+                    Enemy[enemy_count] = Instantiate(EnemyPlayer, new Vector3(i, j-0.5f, -0.3f), Quaternion.AngleAxis(180, Vector3.up));
                     enemy_count++;
                 }
                 else if(Level[i,j] == 9) 
-                    Player.transform.position = new Vector3(i, j, -0.3f);
+                    Player.transform.position = new Vector3(i, j-0.5f, -0.3f);
+                    Player.transform.rotation = Quaternion.AngleAxis(180, Vector3.up);
             }
         }
         return (CubesInLevel, GoldInLevel, Other, Enemy);
@@ -148,8 +171,14 @@ public class inital : MonoBehaviour
         MyGold = 0;
         Gold_count = 0;
         Level = ReadLevel("Level "+level+".txt");
+        
         var tmp = DrawLevel(Level);
-        CubesInLevel = tmp.Item1;
+        for (int i = 0; i < Level.GetLength(0); i++) {
+            for (int j = 0; j < Level.GetLength(1); j++) { 
+                if(Level[i, j] == 8) {Level[i, j] = 0;}
+                if(Level[i, j] == 9) {Level[i, j] = 0;}
+            }
+        }CubesInLevel = tmp.Item1;
         GoldInLevel = tmp.Item2;
         Other = tmp.Item3;
         Enemys = tmp.Item4;
@@ -159,15 +188,46 @@ public class inital : MonoBehaviour
         for (int i = 0; i < Enemys_last_check_y.Length; i++) Enemys_last_check_y[i] = -1;
     }
 
-    void Start() {
-        load_level(level_count);
-        StartCoroutine(MyUpdate());
+    void Start() { 
+        for (int i = 0; i < 42; i++) {
+            for (int j = 0; j < 22; j++) { Instantiate(InitalBlackCube, new Vector3(i-5, j-1, 1), Quaternion.identity); }
+        } 
+        StartCoroutine(MyStart()); 
+    }
+
+    IEnumerator MyStart() {
+        Effects.GetComponent<AudioSource>().clip = LogoSound;
+        Effects.GetComponent<AudioSource>().Play();
+
+        ok = false;
+        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
+        IMAGE.GetComponent<RectTransform>().localPosition = new Vector3(-10000, -10000, -100);
         PlayerAnimator = Player.GetComponent<Animator>();
+        load_level(level_count);
+        PlayerAnimator.runtimeAnimatorController = Stand; 
+        StartCoroutine(MyUpdate());
+
+        Effects.GetComponent<AudioSource>().clip = NewLevel;
+        Effects.GetComponent<AudioSource>().Play();
+
+        text_blue = "Level "+level_count;
+        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
+        text_blue = "";
+        ok = true;
+
+        SoundTrack.GetComponent<AudioSource>().clip = Soundtrack;
+        SoundTrack.GetComponent<AudioSource>().Play();
     }
 
     void Update() {
         Text_RED.GetComponent<UnityEngine.UI.Text>().text = text_red;
         Text_GREEN.GetComponent<UnityEngine.UI.Text>().text = text_green;
+        Text_BLUE.GetComponent<UnityEngine.UI.Text>().text = text_blue;
+        if((int)Math.Round(Input.GetAxis("Cancel")) == 1) {
+            Application.Quit();
+        }
+
+        Speed = Speed_start*Time.deltaTime*30;
 
         if(ok) {
             RotatePlayer(PlayerDirectionTo);
@@ -226,7 +286,6 @@ public class inital : MonoBehaviour
     IEnumerator MyUpdate (){
         while(true) {
             if(ok) {
-
                 float input_x = Input.GetAxis("Horizontal");
                 float input_y = Input.GetAxis("Vertical");
                 bool Gravity = true;
@@ -235,10 +294,11 @@ public class inital : MonoBehaviour
                    Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] <= 2) {
                     for (int enemy = 0; enemy < enemy_count; enemy++) {
                         Transform tmp_transform = Enemys[enemy].GetComponent<Transform>();
+                        Rigidbody tmp_rigidbody = Enemys[enemy].GetComponent<Rigidbody>();
                         int tmp_x = (int)Math.Round(tmp_transform.position.x);
                         int tmp_y = (int)tmp_transform.position.y+1;
                         if(tmp_y+1 == (int)Player.transform.position.y+1 &&
-                            tmp_x-(int)Math.Round(Player.transform.position.x) == 0) { Gravity = false; }
+                            tmp_x-(int)Math.Round(Player.transform.position.x) == 0) { Gravity = false; }                        
                     }
 
                     PlayerRigidbody.useGravity = Gravity;
@@ -249,11 +309,20 @@ public class inital : MonoBehaviour
                 }
 
                 if(Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] == 3 ||
-                   Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 3) {
+                   (Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 3 &&
+                   Mathf.Abs(Player.transform.position.y - (int)Player.transform.position.y)<0.5f)) {
                     PlayerRigidbody.useGravity = false; PlayerDirectionTo = 2;
                     if(input_y == 0) { AnimatorNow= StandStairs; }
-                    if(input_y > 0) { AnimatorNow = Up; }
-                    if(input_y < 0) { AnimatorNow= Up; }
+                    if(input_y > 0) { 
+                        AnimatorNow = Up; 
+                        if(input_y ==1)
+                            Player.transform.position = new Vector3((int)Math.Round(Player.transform.position.x), Player.transform.position.y, 0);
+                    }
+                    if(input_y < 0) { 
+                        AnimatorNow= Up; 
+                        if(input_y ==1)
+                            Player.transform.position = new Vector3((int)Math.Round(Player.transform.position.x), Player.transform.position.y, 0);
+                    }
                     Player.transform.position += new Vector3(0, Speed/500f*input_y, 0);
                 }
                 else if(Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] == 4) {
@@ -269,14 +338,20 @@ public class inital : MonoBehaviour
 
                 int MineLeft = (int)Math.Round(Input.GetAxis("Fire1"));
                 int MineRight = (int)Math.Round(Input.GetAxis("Fire2"));
-                if(MineLeft != 0) {
+                if((MineLeft != 0 && Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] != 3) ||
+                    (MineLeft != 0 && Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] == 3 &&
+                    (Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 1 || 
+                    Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 2 ))) {
                     PlayerDirectionTo = -1;
                     AnimatorNow = Mining;
                     yield return new WaitForSeconds(0.75f);
                     CubeDestroy((int)Math.Round(Player.transform.position.x)-1, (int)Player.transform.position.y);
                     RotatePlayer(0);
                 }
-                if(MineRight != 0) {
+                if((MineRight != 0 && Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] != 3) ||
+                    (MineRight != 0 && Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y+1] == 3 &&
+                    (Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 1 || 
+                    Level[(int)Math.Round(Player.transform.position.x), (int)Player.transform.position.y] == 2 ))) {
                     PlayerDirectionTo = 1;
                     AnimatorNow = Mining;
                     yield return new WaitForSeconds(0.75f);
@@ -327,16 +402,29 @@ public class inital : MonoBehaviour
 
                     if(tmp_x == (int)Math.Round(Player.transform.position.x) && 
                         (int)Player.transform.position.y+1 == tmp_y && ok) {
+                        SoundTrack.GetComponent<AudioSource>().mute = true;
+                        Effects.GetComponent<AudioSource>().clip = GameOver;
+                        Effects.GetComponent<AudioSource>().Play();
                         ok = false;
                         text_red = "GAME OVER";
-                        yield return new WaitForSeconds(2f);
+                        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
                         DESTROY_LEVEL();
                         load_level(level_count);
                         text_red = "";
                         ok = true;
+                        SoundTrack.GetComponent<AudioSource>().mute = false;
                     }
 
                     if(Gold_count == MyGold) {
+                        SoundTrack.GetComponent<AudioSource>().mute = true;
+                        
+                        ok = false;
+                        if(UnityEngine.Random.Range(1, 100) > 50)
+                            Effects.GetComponent<AudioSource>().clip = AllGold;
+                        else 
+                            Effects.GetComponent<AudioSource>().clip = AllGold2;
+                        Effects.GetComponent<AudioSource>().Play();
+                        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
                         for (int i = 0; i < Level.GetLength(0); i++) {
                             for (int j = 0; j < Level.GetLength(1); j++) { 
                                 if(Level[i,j] == 6) { 
@@ -345,20 +433,45 @@ public class inital : MonoBehaviour
                                 }
                             }
                         }
+                        ok = true;
+                        SoundTrack.GetComponent<AudioSource>().mute = false;
+                        MyGold = 0;
                     }
 
-                    if((int)Player.transform.position.y == Level.GetLength(1)-2) {
+                    if((int)Player.transform.position.y+1 == Level.GetLength(1)-2) {
+                        SoundTrack.GetComponent<AudioSource>().mute = true;
+                        Effects.GetComponent<AudioSource>().clip = EndLevel;
+                        Effects.GetComponent<AudioSource>().Play();
                         text_green = "WIN";
-                        yield return new WaitForSeconds(2f);
+                        ok = false;
+                        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
                         DESTROY_LEVEL();
                         level_count++;
                         load_level(level_count);
                         text_green = "";
+                        PlayerAnimator.runtimeAnimatorController = Stand; 
+                        Effects.GetComponent<AudioSource>().clip = NewLevel;
+                        Effects.GetComponent<AudioSource>().Play();
+                        text_blue = "Level "+level_count;
+                        yield return new WaitForSeconds(Effects.GetComponent<AudioSource>().clip.length);
+                        text_blue = "";
                         ok = true;
+                        SoundTrack.GetComponent<AudioSource>().mute = false;
                   }
                         
                 }
             }
+
+            int pause = (int)Math.Round(Input.GetAxis("Fire3"));
+            if(pause == 1) { 
+                if(wait_space0) { 
+                    ok = !ok; 
+                    wait_space0 = false; 
+                    if(!ok) { text_blue = "PAUSE"; }
+                    else text_blue = "";
+                }
+            } else wait_space0 = true;
+
             yield return null;
         }
     }
